@@ -29,12 +29,13 @@ export default function Products() {
 
   const navigate = useNavigate();
 
+  // Adds the selected product to the cart with an initial quantity of 1.
   const handleAddToCart = async (productId) => {
     try {
-      await addToCart(productId);
+      await addToCart(productId, 1);
       const updatedCart = await getCart();
       setCart(updatedCart);
-      navigate('/cart')
+      navigate("/cart");
     } catch (error) {
       console.error("Error adding to cart:", error);
     }

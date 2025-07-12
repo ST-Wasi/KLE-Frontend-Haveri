@@ -1,13 +1,20 @@
-const API_URL = "https://kle-com-backend.onrender.com";
+// const API_URL = "https://kle-com-backend.onrender.com";
+const API_URL = "http://localhost:8080";
 
-export async function addToCart(product) {
+// Accepts a productID and an optional quantity (defaults to 1) and sends both
+// pieces of data to the backend so it can either add a new item or increment an
+// existing one.
+export async function addToCart(productID, quantity = 1) {
   const response = await fetch(`${API_URL}/cart/add`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       token: JSON.parse(localStorage.getItem("user")).token,
     },
-    body: JSON.stringify({ products: [product] }),
+    // The backend expects an array of product objects containing id & quantity
+    body: JSON.stringify({
+      products: [{ productId: productID, quantity }],
+    }),
   });
 
   if (!response.ok) {
@@ -18,7 +25,7 @@ export async function addToCart(product) {
 }
 
 export async function getCart() {
-  const response = await fetch(`${API_URL}/cart`, {
+  const response = await fetch(`${API_URL}/cart/userCart`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -38,8 +45,9 @@ export async function updateQuantity(productID, quantity) {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
+      token: JSON.parse(localStorage.getItem("user")).token,
     },
-    body: JSON.stringify({ productID, quantity }),
+    body: JSON.stringify({ productId: productID, quantity }),
   });
 
   if (!response.ok) {
@@ -50,13 +58,14 @@ export async function updateQuantity(productID, quantity) {
 }
 
 export async function removeFromCart(productID) {
-  const response = await fetch(`${API_URL}/cart/product/delete`, {
-    method: "DELETE",
+  // Backend expects update with action "remove"; use PUT
+  const response = await fetch(`${API_URL}/cart/update`, {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       token: JSON.parse(localStorage.getItem("user")).token,
     },
-    body: JSON.stringify({ productID }),
+    body: JSON.stringify({ productId: productID, action: "remove" }),
   });
 
   if (!response.ok) {

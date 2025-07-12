@@ -1,4 +1,5 @@
-const API_URL = "https://kle-com-backend.onrender.com";
+// const API_URL = "https://kle-com-backend.onrender.com";
+const API_URL = "http://localhost:8080";
 
 export async function login(credentials) {
   const response = await fetch(`${API_URL}/login`, {
@@ -52,6 +53,7 @@ export async function addProduct(product) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      token: JSON.parse(localStorage.getItem("user")).token,
     },
     body: JSON.stringify(product),
   });

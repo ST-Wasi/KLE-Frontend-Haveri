@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Trash2 } from 'lucide-react';
-import { getCart, removeFromCart } from '../api/cart';
+import { ShoppingBag, Trash2, Plus, Minus } from 'lucide-react';
+import { getCart, removeFromCart, updateQuantity } from '../api/cart';
 
 export default function Cart() {
     const [cart, setCart] = useState([]);
@@ -15,8 +15,14 @@ export default function Cart() {
         async function fetchCartData() {
             const currentCart = await getCartsData();
             console.log('✌️currentCart --->', currentCart);
-            setCart(currentCart?.cart?.products);
-            setCartTotal(currentCart?.cart?.products.reduce((total, item) => total + item.price, 0));
+            const currentProducts = currentCart?.cart?.products || [];
+            setCart(currentProducts);
+            setCartTotal(
+                currentProducts.reduce(
+                    (total, item) => total + (item.product?.price || 0) * (item.quantity || 1),
+                    0
+                )
+            );
         }
 
         fetchCartData();
@@ -25,8 +31,48 @@ export default function Cart() {
     const handleRemoveItem = async (itemId) => {
         await removeFromCart(itemId);
         const updatedCart = await getCart();
-        setCart(updatedCart?.cart?.products);
-        setCartTotal(updatedCart?.cart?.products.reduce((total, item) => total + item.price, 0));
+        const updatedProducts = updatedCart?.cart?.products || [];
+        setCart(updatedProducts);
+        setCartTotal(
+            updatedProducts.reduce(
+                (total, item) => total + (item.product?.price || 0) * (item.quantity || 1),
+                0
+            )
+        );
+    };
+
+    // Increase quantity by 1
+    const handleIncreaseQuantity = async (itemId, currentQty) => {
+        const newQty = (currentQty || 1) + 1;
+        await updateQuantity(itemId, newQty);
+        const updatedCart = await getCart();
+        const updatedProducts = updatedCart?.cart?.products || [];
+        setCart(updatedProducts);
+        setCartTotal(
+            updatedProducts.reduce(
+                (total, item) => total + (item.product?.price || 0) * (item.quantity || 1),
+                0
+            )
+        );
+    };
+
+    // Decrease quantity (and remove if quantity becomes 0)
+    const handleDecreaseQuantity = async (itemId, currentQty) => {
+        if ((currentQty || 1) <= 1) {
+            // If quantity would drop below 1, remove the item
+            await handleRemoveItem(itemId);
+            return;
+        }
+        await updateQuantity(itemId, (currentQty || 1) - 1);
+        const updatedCart = await getCart();
+        const updatedProducts = updatedCart?.cart?.products || [];
+        setCart(updatedProducts);
+        setCartTotal(
+            updatedProducts.reduce(
+                (total, item) => total + (item.product?.price || 0) * (item.quantity || 1),
+                0
+            )
+        );
     };
 
     if (cart.length === 0) {
@@ -63,19 +109,36 @@ export default function Cart() {
                                     <li key={item._id} className="p-4">
                                         <div className="flex items-center space-x-4">
                                             <img
-                                                src={item.image}
-                                                alt={item.name}
+                                                src={item.product?.image || "/placeholder.svg"}
+                                                alt={item.product?.name || "Product Image"}
                                                 className="h-20 w-20 object-cover rounded"
                                             />
                                             <div className="flex-1">
-                                                <h3 className="text-lg font-medium text-gray-900">{item.name}</h3>
+                                                <h3 className="text-lg font-medium text-gray-900">{item.product?.name}</h3>
                                                 <p className="text-lg font-medium text-gray-900">
-                                                    ${item.price.toFixed(2)}
+                                                    ${(item.product?.price * (item.quantity || 1)).toFixed(2)}
                                                 </p>
+                                                <div className="flex items-center space-x-2 mt-2">
+                                                    <button
+                                                        onClick={() => handleDecreaseQuantity(item.product?._id || item._id, item.quantity)}
+                                                        className="p-1 bg-gray-200 rounded hover:bg-gray-300"
+                                                    >
+                                                        <Minus className="h-4 w-4" />
+                                                    </button>
+                                                    <span className="min-w-[24px] text-center">
+                                                        {item.quantity || 1}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleIncreaseQuantity(item.product?._id || item._id, item.quantity)}
+                                                        className="p-1 bg-gray-200 rounded hover:bg-gray-300"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="flex items-center space-x-4">
                                                 <button
-                                                    onClick={() => handleRemoveItem(item._id)}
+                                                    onClick={() => handleRemoveItem(item.product?._id || item._id)}
                                                     className="text-red-600 hover:text-red-700"
                                                 >
                                                     <Trash2 className="h-5 w-5" />
